@@ -1,0 +1,13 @@
+{
+  "name": "math-unfolded",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "数学展开：通过交互图形理解微积分的中文学习网站",
+  "scripts": {
+    "start": "node tools/serve.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check public/app.js && node --check public/graph.js && node --test tests/*.test.mjs"
+  },
+  "license": "MIT"
+}
