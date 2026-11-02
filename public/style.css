@@ -10,4 +10,5 @@
 #app h1:focus{outline:none}
 
 .source-link{font-family:var(--mono);padding:10px 0}
+.pilot-feature{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:25px 28px;border:1px solid var(--line);border-left:3px solid var(--red);border-radius:5px;background:var(--paper);margin:8px 0 30px}.pilot-feature h2{font:400 25px/1.5 var(--serif);color:var(--ink);margin:7px 0}.pilot-feature p{font-size:12px;color:var(--muted)}.pilot-feature-arrow{font-size:12px;white-space:nowrap;color:var(--red)}.pilot-feature:hover{box-shadow:var(--shadow)}@media(max-width:600px){.pilot-feature{padding:20px;align-items:start;flex-direction:column;gap:14px}.pilot-feature h2{font-size:23px}}
 @media(max-width:390px){.topbar nav{gap:10px}.topbar nav button span{display:none}}

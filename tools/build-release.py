@@ -6,8 +6,8 @@ import tarfile
 from pathlib import Path
 
 root=Path(__file__).resolve().parents[1]
-names=['index.html','app.js','content.js','math.js','graph.js','style.css','icon.svg','robots.txt','sitemap.xml']
-originals={name:(root/'public'/name).read_bytes() for name in names}
+names=['index.html','app.js','content.js','math.js','graph.js','style.css','icon.svg','robots.txt','sitemap.xml','slope.html','slope.js','slope-model.js','slope.css']
+originals={name:(root/'public'/name).read_bytes().replace(b'\r\n',b'\n') for name in names}
 version=hashlib.sha256(b''.join(name.encode()+originals[name] for name in sorted(names))).hexdigest()[:16]
 out=root/'qa-artifacts'/'release'
 out.mkdir(parents=True,exist_ok=True)
@@ -17,8 +17,12 @@ for name,data in originals.items():
         text=data.decode('utf-8')
         text=re.sub(r"((?:from\s*|import\s*)['\"])(\./[^'\"?]+\.js)(['\"])",lambda m:m[1]+m[2]+'?v='+version+m[3],text)
         data=text.encode('utf-8')
-    if name=='index.html':
-        data=data.decode('utf-8').replace('src="app.js"',f'src="app.js?v={version}"').replace('href="style.css"',f'href="style.css?v={version}"').replace('href="icon.svg"',f'href="icon.svg?v={version}"').encode('utf-8')
+    if name.endswith('.html'):
+        text=data.decode('utf-8')
+        for asset in names:
+            if asset.endswith(('.js','.css','.svg')):
+                text=text.replace(f'src="{asset}"',f'src="{asset}?v={version}"').replace(f'href="{asset}"',f'href="{asset}?v={version}"')
+        data=text.encode('utf-8')
     (out/name).write_bytes(data)
     manifest[name]=hashlib.sha256(data).hexdigest()
 data=(root/'LICENSE').read_bytes()
