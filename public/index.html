@@ -5,13 +5,19 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#f3f2ee">
   <meta name="description" content="用可以拖动的曲线、切线和面积理解微积分。六章中文讲解，十八个交互单元，配有练习与解析。">
+  <link rel="canonical" href="https://math.selfworks.ai/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:title" content="数学展开 · 把公式变成眼前的变化">
+  <meta property="og:description" content="通过滑块、切线和面积图形理解微积分。六章中文讲解，十八个交互单元与练习。">
+  <meta property="og:url" content="https://math.selfworks.ai/">
   <title>数学展开 · 把公式变成眼前的变化</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
   <script type="module" src="app.js"></script>
 </head>
 <body>
-  <header class="topbar"><a class="brand" href="#/" aria-label="数学展开首页"><span class="brand-mark">∫</span>数学展开</a><span id="breadcrumb" class="breadcrumb">一本可以动手读的数学书</span><nav aria-label="主导航"><a href="#/" id="contents-link">目录</a><button id="reference-open" type="button">公式手册 <span>↗</span></button></nav></header>
+  <header class="topbar"><a class="brand" href="#/" aria-label="数学展开首页"><span class="brand-mark">∫</span>数学展开</a><span id="breadcrumb" class="breadcrumb">一本可以动手读的数学书</span><nav aria-label="主导航"><a href="#/" id="contents-link">目录</a><button id="reference-open" type="button">公式手册 <span>↗</span></button><a class="source-link" href="https://github.com/Kayce001/math-unfolded" target="_blank" rel="noopener noreferrer" aria-label="数学展开 GitHub 源码">GitHub</a></nav></header>
   <main id="app"></main>
   <dialog id="reference" aria-labelledby="reference-title"><div class="dialog-head"><span class="eyebrow">随手翻一页</span><button type="button" id="reference-close" aria-label="关闭公式手册">×</button></div><h2 id="reference-title">微积分的几条主线</h2><div id="reference-body"></div></dialog>
   <noscript><div class="noscript"><h1>数学展开</h1><p>这里有函数、极限、导数、导数应用、积分和微积分基本定理六章中文讲解。交互图形需要浏览器启用 JavaScript。</p></div></noscript>

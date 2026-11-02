@@ -8,3 +8,6 @@
 
 @media(max-width:760px){.plot-ticks text{font-size:20px}.point-label{font-size:22px}.plot-inset text{font-size:18px}.plot-inset .inset-title{display:none}}
 #app h1:focus{outline:none}
+
+.source-link{font-family:var(--mono);padding:10px 0}
+@media(max-width:390px){.topbar nav{gap:10px}.topbar nav button span{display:none}}
