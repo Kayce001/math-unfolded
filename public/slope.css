@@ -3,3 +3,31 @@
 @media(max-width:520px){.pilot{padding:25px 16px}.pilot-heading{margin-bottom:22px}.pilot-heading h1{font-size:31px}.learning-steps button{font-size:11px;padding:13px 3px}.learning-steps button span{margin-right:5px}.visual-column{padding:16px 12px}.lesson-sidebar{padding:23px 20px}.caption{padding:14px;min-height:140px;font-size:13px}.caption h2{font-size:19px}.transport{gap:7px;flex-wrap:wrap}.pilot button.action{padding:10px 13px}.clock{font-size:10px}.formula-strip{font-size:14px;gap:12px}.slope-visual text{font-size:16px}.slope-visual .axis-title{font-size:16px}.slope-visual .point-text{font-size:16px}.slope-visual .track-name{font-size:16px}.lesson-sidebar ol{grid-template-columns:1fr}.quiz-card,.check-summary{padding:21px}.prediction{padding:17px}.pilot-heading p{font-size:13px}}
 .visual-column .slope-visual{max-height:310px}.visual-column .caption{min-height:110px}@media(max-width:520px){.visual-column .slope-visual{max-height:none}}
 .visual-column .slope-visual.equal-unit{max-height:360px}.equal-unit .scale-note{font-size:17px;fill:var(--text)}.equal-unit .scale-value{font-size:20px;fill:var(--red)}.equal-unit .point-text{font-size:17px}@media(max-width:520px){.visual-column .slope-visual.equal-unit{max-height:none}.equal-unit .scale-note{font-size:18px}.equal-unit .scale-value{font-size:21px}.equal-unit .point-text{font-size:18px}}
+body.movie-expanded{overflow:hidden}
+#movie-end{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+#movie-player:is(:fullscreen,.is-expanded){box-sizing:border-box;width:100%;height:100dvh;background:var(--paper);color:var(--ink);padding:16px max(18px,env(safe-area-inset-right)) 16px max(18px,env(safe-area-inset-left));display:grid;grid-template-rows:auto minmax(140px,1fr) auto auto auto auto auto auto auto;gap:7px;overflow:auto}
+#movie-player.is-expanded{position:fixed;inset:0;z-index:10000}
+#movie-player::backdrop{background:var(--paper)}
+#movie-player:is(:fullscreen,.is-expanded) #visual{min-height:0;display:grid;place-items:center;overflow:hidden}
+#movie-player:is(:fullscreen,.is-expanded) .slope-visual{width:100%;height:100%;max-height:none!important;margin:0;min-height:0}
+#movie-player:is(:fullscreen,.is-expanded) .formula-strip{padding-top:7px;font-size:17px}
+#movie-player:is(:fullscreen,.is-expanded) .transport{margin:0;flex-wrap:wrap;gap:8px}
+#movie-player:is(:fullscreen,.is-expanded) .caption{min-height:80px;max-width:1100px;width:100%;justify-self:center;padding:10px 16px}
+#movie-player:is(:fullscreen,.is-expanded) .caption h2{font-size:20px;line-height:1.4;margin-bottom:4px}
+#movie-player:is(:fullscreen,.is-expanded) #audio-status:empty{display:none}
+#movie-player:is(:fullscreen,.is-expanded) .timeline{height:23px}
+#movie-player:is(:fullscreen,.is-expanded) #movie-end{margin:0;padding:8px 12px}
+@media(min-aspect-ratio:4/3) and (max-height:600px){
+ #movie-player:is(:fullscreen,.is-expanded){padding:10px 14px;grid-template-columns:minmax(0,1fr) minmax(240px,.85fr);grid-template-rows:auto minmax(70px,1fr) auto auto auto auto auto auto;gap:6px 14px}
+ #movie-player:is(:fullscreen,.is-expanded) .visual-label{grid-column:1/3;grid-row:1}
+ #movie-player:is(:fullscreen,.is-expanded) #visual{grid-column:1;grid-row:2/9}
+ #movie-player:is(:fullscreen,.is-expanded) .caption{grid-column:2;grid-row:2;padding:8px 10px;min-height:0;align-self:center;font-size:12px}
+ #movie-player:is(:fullscreen,.is-expanded) .caption h2{font-size:16px}
+ #movie-player:is(:fullscreen,.is-expanded) .formula-strip{grid-column:2;grid-row:3;padding-top:4px;font-size:14px;gap:10px}
+ #movie-player:is(:fullscreen,.is-expanded) .transport{grid-column:2;grid-row:4;gap:5px}
+ #movie-player:is(:fullscreen,.is-expanded) .transport button{min-height:34px;padding:6px 8px;font-size:11px}
+ #movie-player:is(:fullscreen,.is-expanded) #audio-status{grid-column:2;grid-row:5}
+ #movie-player:is(:fullscreen,.is-expanded) .timeline-label{grid-column:2;grid-row:6}
+ #movie-player:is(:fullscreen,.is-expanded) .timeline{grid-column:2;grid-row:7}
+ #movie-player:is(:fullscreen,.is-expanded) #movie-end{grid-column:2;grid-row:8;font-size:11px}
+}

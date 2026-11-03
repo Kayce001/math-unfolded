@@ -2,6 +2,56 @@ import {DURATION,beats,animationAt,reading,plotGeometry,tasks,taskMatches,questi
 
 const root=document.getElementById('lesson'),KEY='math-unfolded-slope-v1';
 let mode='watch',time=0,playing=false,frame=0,k=2,dx=1,task=0,prediction=null,playRequest=0,starting=false;
+let expandedFallback=false,fullscreenBusy=false,fullscreenScrollY=0,restoreFullscreenFocus=true;
+const player=()=>document.getElementById('movie-player');
+const expanded=()=>!!player()&&(document.fullscreenElement===player()||expandedFallback);
+function syncFullscreen(){
+  const button=document.getElementById('movie-fullscreen');if(!button)return;
+  button.textContent=expandedFallback?'退出大屏':expanded()?'退出全屏':'全屏观看';
+  button.setAttribute('aria-pressed',String(expanded()));button.disabled=fullscreenBusy;
+}
+function restorePlayerPosition(){
+  if(!restoreFullscreenFocus)return;
+  document.getElementById('movie-fullscreen')?.focus({preventScroll:true});
+  window.scrollTo({top:fullscreenScrollY,behavior:'instant'});
+}
+function closeExpandedFallback(){
+  expandedFallback=false;player()?.classList.remove('is-expanded');
+  document.body.classList.remove('movie-expanded');audioStatus();syncFullscreen();restorePlayerPosition();
+}
+async function exitExpanded(restore=true){
+  restoreFullscreenFocus=restore;
+  if(expandedFallback)closeExpandedFallback();
+  else if(player()&&document.fullscreenElement===player()){
+    fullscreenBusy=true;syncFullscreen();
+    try{await document.exitFullscreen();}
+    catch{audioStatus('暂时无法退出全屏，请按 Esc 返回。');}
+    finally{fullscreenBusy=false;syncFullscreen();}
+  }
+}
+async function toggleFullscreen(){
+  if(fullscreenBusy||!player())return;
+  if(expanded()){await exitExpanded();return;}
+  fullscreenScrollY=window.scrollY;restoreFullscreenFocus=true;fullscreenBusy=true;syncFullscreen();
+  try{
+    if(!document.fullscreenEnabled||!player().requestFullscreen)throw new Error('fullscreen unavailable');
+    await player().requestFullscreen();
+  }catch{
+    expandedFallback=true;player().classList.add('is-expanded');document.body.classList.add('movie-expanded');
+    audioStatus('已展开为大屏，可点击“退出大屏”或按 Esc 返回。');
+  }finally{fullscreenBusy=false;syncFullscreen();document.getElementById('movie-fullscreen')?.focus({preventScroll:true});}
+}
+document.addEventListener('fullscreenchange',()=>{syncFullscreen();if(!document.fullscreenElement)restorePlayerPosition();});
+document.addEventListener('keydown',e=>{
+  if(!expandedFallback)return;
+  if(e.key==='Escape'){e.preventDefault();closeExpandedFallback();return;}
+  if(e.key==='Tab'){
+    const controls=[...player().querySelectorAll('button,input,a,[tabindex]')].filter(el=>!el.disabled&&el.getClientRects().length&&el.tabIndex>=0);
+    const first=controls[0],last=controls.at(-1);if(!first)return;
+    if(e.shiftKey&&(document.activeElement===first||!player().contains(document.activeElement))){e.preventDefault();last.focus();}
+    else if(!e.shiftKey&&(document.activeElement===last||!player().contains(document.activeElement))){e.preventDefault();first.focus();}
+  }
+});
 const mediaURL=new URL('./slope-narration.mp3',import.meta.url);
 mediaURL.search=new URL(import.meta.url).search;
 const narration=new Audio(mediaURL.href);
@@ -79,21 +129,21 @@ async function togglePlay(){
 }
 function renderWatch(){
   root.innerHTML=`<div class="pilot-workspace">
-    <section class="visual-column" aria-label="斜率讲解动画">
+    <section class="visual-column" id="movie-player" aria-label="斜率讲解动画">
       <div class="visual-label"><span>一段运动，变成一条直线</span><span>约 ${Math.round(DURATION)} 秒 · 中文讲解</span></div>
       <div id="visual"></div><div id="formula-readout" class="formula-strip"></div>
-      <div class="transport"><button class="action" id="movie-play" aria-pressed="false">▷ 播放讲解动画</button><button class="action outline" id="movie-back">后退 10 秒</button><button class="action outline" id="movie-mute" aria-pressed="${narration.muted}">静音讲解</button><span class="clock" id="movie-clock"></span></div>
+      <div class="transport"><button class="action" id="movie-play" aria-pressed="false">▷ 播放讲解动画</button><button class="action outline" id="movie-back">后退 10 秒</button><button class="action outline" id="movie-mute" aria-pressed="${narration.muted}">静音讲解</button><button class="action outline" id="movie-fullscreen" aria-pressed="false">全屏观看</button><span class="clock" id="movie-clock"></span></div>
       <p id="audio-status" class="hint-note" role="status"></p>
       <label class="timeline-label" for="movie-timeline"><span>讲解进度 · 可以拖动回看</span><span>${clock(DURATION)}</span></label>
       <input class="timeline" id="movie-timeline" type="range" min="0" max="${DURATION}" step="0.1" value="${time}">
       <div class="caption" aria-label="当前讲解字幕"><h2 id="movie-title"></h2><p id="movie-caption"></p></div>
-      <p id="movie-end" class="feedback" hidden>讲解已到结尾。现在先预测，再用同一组图形验证。</p>
+      <div id="movie-end" class="feedback" hidden><span>讲解已到结尾。现在先预测，再亲手验证。</span><button class="action" data-mode="explore">进入互动探索 →</button></div>
     </section>
     <aside class="lesson-sidebar"><div class="eyebrow">01 / 先形成一个印象</div><h2>为什么有的直线<br>更陡一些？</h2><p>听讲解，看两个人怎样行走，再看图像怎样把变化留下来。</p>
       <ol aria-label="动画六个片段">${beats.map((b,i)=>`<li class="beat" data-beat="${i}"><span>${clock(b.start)}</span>${b.title}</li>`).join('')}</ol>
       <div class="aside-bottom"><button class="action" data-mode="explore">去预测与探索 →</button><p class="hint-note">点击播放后开启声音与动画；可以静音、回看，或直接探索。</p></div>
     </aside></div>`;
-  movieFrame();syncTransport();
+  movieFrame();syncTransport();syncFullscreen();
 }
 function exploreDrawing(){const m=reading(k,dx);document.getElementById('visual').innerHTML=plot(k,dx);document.getElementById('slope-value').textContent=n(k);document.getElementById('interval-value').textContent=dx;document.getElementById('live-formula').textContent=`${n(m.dy)} / ${dx} = ${n(k)}`;document.getElementById('live-explain').textContent=k===0?'x 改变时，y 不变。斜率为 0，这条直线与横轴重合。':`x 每增加 1，y ${k>0?'增加':'减少'} ${n(Math.abs(k))}。${k<0?'负号表示变化的方向。':'正号表示 y 随 x 增加而增加。'}`;document.getElementById('table-values').innerHTML=`<tr><th scope="row">x</th>${m.values.map(v=>`<td>${v.x}</td>`).join('')}</tr><tr><th scope="row">y</th>${m.values.map(v=>`<td>${n(v.y)}</td>`).join('')}</tr>`;}
 function taskHTML(){return `<div class="task-box"><div class="task-dots" aria-label="已完成 ${passed.length} / 3 个操作任务">${tasks.map((_,i)=>`<span class="${passed.includes(i)?'done':''}"></span>`).join('')}</div><div class="eyebrow">操作任务 ${task+1} / 3</div><h3>${tasks[task].title}</h3><p>${tasks[task].hint}</p><button class="action" id="task-check">检查我的图形</button><div id="task-feedback" class="feedback" aria-live="polite"></div><button class="action outline" id="task-next" ${passed.includes(task)?'':'hidden'}>${task<2?'下一个操作任务 →':'去检验理解 →'}</button></div>`;}
@@ -106,10 +156,11 @@ function renderCheck(){
   const correct=questions.filter((q,i)=>answers[i]===q.answer).length,done=mastery(passed,answers);
   root.innerHTML=`<p class="step-intro">换一组条件，看看这个理解能否带走。题目与探索页当前参数独立；可以修改答案。</p><div class="check-layout"><div class="quiz-list">${questions.map((q,i)=>`<section class="quiz-card"><h2>${q.title}</h2><p>${q.text}</p><div class="quiz-options">${q.choices.map((c,j)=>`<button data-question="${i}" data-answer="${j}" aria-pressed="${answers[i]===j}" class="${answers[i]===j?(j===q.answer?'correct':'wrong'):''}">${String.fromCharCode(65+j)} · ${c}</button>`).join('')}</div>${answers[i]!=null?`<div class="feedback" role="status"><strong>${answers[i]===q.answer?'回答正确。':'再想一想，可以修改答案。'}</strong> ${q.explain}</div>`:''}</section>`).join('')}</div><aside class="check-summary"><div class="eyebrow">03 / 带走一个理解</div><h2>${done?'你完成了这一节。':'会看，也要会解释。'}</h2><div class="summary-number">${correct} / 3</div><p>理解题答对 ${correct} 道；探索页操作任务完成 ${passed.length} / 3 个。</p><p class="${done?'completion-note':''}">${done?'三项操作任务与三道理解题都已完成。试着不用公式，用自己的话解释一次斜率。':'完成三项操作任务，并答对三道理解题后，才会记录本节完成。答错也可以回到图形重新验证。'}</p><p>记住：斜率 = 纵向变化 ÷ 横向变化。对 y = kx，斜率就是 k；横向变化不能为 0。</p><div class="summary-actions"><button class="action" data-mode="explore">回到图形验证</button><button class="action outline" data-mode="watch">回看动画</button><button class="action outline" id="clear-progress">清除本节进度</button></div><p class="hint-note">记录仅存于当前浏览器。完成任务不等于已证明长期掌握。</p></aside></div>`;
 }
-function changeMode(next){pause();mode=next;for(const b of document.querySelectorAll('[data-mode]')){if(b.closest('.learning-steps')){if(b.dataset.mode===mode)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current');}}if(mode==='watch')renderWatch();else if(mode==='explore')renderExplore();else renderCheck();}
-document.addEventListener('click',e=>{
+async function changeMode(next){pause();if(expanded())await exitExpanded(false);mode=next;for(const b of document.querySelectorAll('[data-mode]')){if(b.closest('.learning-steps')){if(b.dataset.mode===mode)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current');}}if(mode==='watch')renderWatch();else if(mode==='explore')renderExplore();else renderCheck();}
+document.addEventListener('click',async e=>{
   const b=e.target.closest('button');if(!b)return;
-  if(b.dataset.mode){changeMode(b.dataset.mode);document.querySelector(`.learning-steps [data-mode="${mode}"]`).focus({preventScroll:true});return;}
+  if(b.dataset.mode){await changeMode(b.dataset.mode);document.querySelector(`.learning-steps [data-mode="${mode}"]`).focus({preventScroll:true});return;}
+  if(b.id==='movie-fullscreen')await toggleFullscreen();
   if(b.id==='movie-play')togglePlay();
   if(b.id==='movie-back')seek(time-10);
   if(b.id==='movie-mute'){narration.muted=!narration.muted;syncTransport();}
@@ -129,7 +180,7 @@ root.addEventListener('input',e=>{
   if(e.target.id==='slope-dx'){dx=Number(e.target.value);exploreDrawing();clearTaskFeedback();}
 });
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
-window.addEventListener('pagehide',pause);window.addEventListener('blur',()=>{if(playing||starting)pause();});
+window.addEventListener('pagehide',pause);window.addEventListener('blur',()=>{if((playing||starting)&&!fullscreenBusy&&!expanded())pause();});
 narration.addEventListener('ended',()=>{time=DURATION;pause();if(mode==='watch')movieFrame();});
 narration.addEventListener('pause',()=>{if(playing)pause();});
 narration.addEventListener('waiting',()=>{if(playing)audioStatus('正在缓冲讲解音频…');});
