@@ -6,8 +6,8 @@ import tarfile
 from pathlib import Path
 
 root=Path(__file__).resolve().parents[1]
-names=['index.html','app.js','content.js','math.js','graph.js','style.css','icon.svg','robots.txt','sitemap.xml','slope.html','slope.js','slope-model.js','slope.css']
-originals={name:(root/'public'/name).read_bytes().replace(b'\r\n',b'\n') for name in names}
+names=['index.html','app.js','content.js','math.js','graph.js','style.css','icon.svg','robots.txt','sitemap.xml','slope.html','slope.js','slope-model.js','slope.css','slope-timing.js','slope-narration.mp3']
+originals={name:((root/'public'/name).read_bytes() if name.endswith('.mp3') else (root/'public'/name).read_bytes().replace(b'\r\n',b'\n')) for name in names}
 version=hashlib.sha256(b''.join(name.encode()+originals[name] for name in sorted(names))).hexdigest()[:16]
 out=root/'qa-artifacts'/'release'
 out.mkdir(parents=True,exist_ok=True)

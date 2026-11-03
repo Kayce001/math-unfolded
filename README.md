@@ -2,7 +2,7 @@
 
 在线体验：[math.selfworks.ai](https://math.selfworks.ai/)
 
-新增试点：[斜率，究竟在说什么？](https://math.selfworks.ai/slope.html)。先看 72 秒字幕动画，再预测、操作和检验理解；面向初中学习者，截距固定为 0。
+新增试点：[斜率，究竟在说什么？](https://math.selfworks.ai/slope.html)。先听约 77 秒中文讲解、看同步动画，再预测、操作和检验理解；面向初中学习者，截距固定为 0。
 
 **让公式，变成眼前的变化。**
 

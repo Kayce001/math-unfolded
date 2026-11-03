@@ -1,7 +1,12 @@
-import {DURATION,beats,beatAt,reading,tasks,taskMatches,questions,mastery} from './slope-model.js';
+import {DURATION,beats,animationAt,reading,tasks,taskMatches,questions,mastery} from './slope-model.js';
 
 const root=document.getElementById('lesson'),KEY='math-unfolded-slope-v1';
-let mode='watch',time=0,playing=false,frame=0,previous=0,k=2,dx=1,task=0,prediction=null;
+let mode='watch',time=0,playing=false,frame=0,k=2,dx=1,task=0,prediction=null,playRequest=0,starting=false;
+const mediaURL=new URL('./slope-narration.mp3',import.meta.url);
+mediaURL.search=new URL(import.meta.url).search;
+const narration=new Audio(mediaURL.href);
+narration.id='lesson-narration';narration.preload='metadata';narration.hidden=true;
+document.body.append(narration);
 let passed=[],answers=[],watchSeconds=0;
 try{const s=JSON.parse(localStorage.getItem(KEY)||'{}');passed=Array.isArray(s.passed)?s.passed.filter(i=>Number.isInteger(i)&&i>=0&&i<tasks.length):[];answers=Array.isArray(s.answers)?questions.map((q,i)=>Number.isInteger(s.answers[i])&&s.answers[i]>=0&&s.answers[i]<q.choices.length?s.answers[i]:null):[];watchSeconds=Math.max(0,Math.min(DURATION,Number(s.watchSeconds)||0));}catch{}
 function save(){try{localStorage.setItem(KEY,JSON.stringify({passed,answers,watchSeconds}));}catch{}}
@@ -10,7 +15,7 @@ const clock=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`
 const line=(x1,y1,x2,y2,color,width=1,dash='')=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${width}" ${dash?`stroke-dasharray="${dash}"`:''}/>`;
 const txt=(x,y,t,cls='',anchor='middle')=>`<text x="${x}" y="${y}" text-anchor="${anchor}" class="${cls}">${t}</text>`;
 const red='#ad4e35',blue='#467c8d',grid='#e4e3dc';
-function plot(slope,interval=1,{motion=false,comparison=false,triangle=true,reveal=1,triangleProgress=1}={}){
+function plot(slope,interval=1,{motion=false,comparison=false,triangle=true,reveal=1,horizontal=1,vertical=1}={}){
   const X=x=>56+x*115,Y=y=>178-y*10.5;
   const m=reading(slope,interval);let s='';
   for(let x=0;x<=4;x++){s+=line(X(x),38,X(x),310,grid);s+=txt(X(x),335,x);}
@@ -18,21 +23,21 @@ function plot(slope,interval=1,{motion=false,comparison=false,triangle=true,reve
   for(const y of yticks){s+=line(56,Y(y),516,Y(y),grid);s+=txt(44,Y(y)+5,y,'','end');}
   s+=line(56,Y(0),526,Y(0),'#a1a197',1.2)+line(56,28,56,313,'#a1a197',1.2);
   s+=txt(516,360,motion?'时间（分钟）':'x','','end')+txt(56,19,motion?'路程（米）':'y','axis-title','start');
-  if(comparison)s+=line(X(0),Y(0),X(4*reveal),Y(4*reveal),blue,2.5)+txt(X(3.65),Y(3.65)-13,'每分钟 1 米','','end');
+  if(comparison)s+=line(X(0),Y(0),X(4*reveal),Y(4*reveal),blue,2.5)+txt(X(3.65),Y(3.65)-13,'每分钟 1 米','','end')+`<circle cx="${X(4*reveal)}" cy="${Y(4*reveal)}" r="4" fill="${blue}"/>`;
   s+=line(X(0),Y(0),X(4*reveal),Y(slope*4*reveal),red,3);
+  if(comparison)s+=`<circle cx="${X(4*reveal)}" cy="${Y(slope*4*reveal)}" r="4" fill="${red}"/>`;
   if(triangle){
-    s+=`<path d="M${X(1)},${Y(m.p.y)}H${X(1+interval)}V${Y(m.q.y)}Z" fill="${red}" opacity=".07"/>`;
-    const horizontal=Math.min(1,triangleProgress*2),vertical=Math.max(0,triangleProgress*2-1);
+    s+=`<path d="M${X(1)},${Y(m.p.y)}H${X(1+interval)}V${Y(m.q.y)}Z" fill="${red}" opacity="${.07*Math.min(horizontal,vertical)}"/>`;
     s+=line(X(1),Y(m.p.y),X(1+interval*horizontal),Y(m.p.y),blue,2,'5 4')+line(X(1+interval),Y(m.p.y),X(1+interval),Y(m.p.y+(m.q.y-m.p.y)*vertical),red,2,'5 4');
-    s+=txt(X(1+interval/2),Y(m.p.y)+23,`Δx = ${interval}`,'point-text');
-    s+=txt(X(1+interval)+10,(Y(m.p.y)+Y(m.q.y))/2-6,`Δy = ${n(m.dy)}`,'point-text','start');
+    if(horizontal===1)s+=txt(X(1+interval/2),Y(m.p.y)+23,`Δx = ${n(interval)}`,'point-text');
+    if(vertical===1)s+=txt(X(1+interval)+10,(Y(m.p.y)+Y(m.q.y))/2-6,`Δy = ${n(m.dy)}`,'point-text','start');
     for(const [label,p] of [['P',m.p],['Q',m.q]])s+=`<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="5" fill="${red}" stroke="#fcfbf8" stroke-width="2"/>`+txt(X(p.x)-12,Y(p.y)-12,label,'point-text');
   }
   s+=txt(510,44,motion?'固定刻度':'一般坐标图 · 固定刻度','','end');
   return `<svg class="slope-visual" viewBox="0 0 570 380" role="img" aria-label="${motion?'路程时间图':'坐标图'}：斜率 ${slope}，横向变化 ${interval}，纵向变化 ${n(m.dy)}。${comparison?'青线斜率为 1。':''}">${s}</svg>`;
 }
-function walkers(t){
-  let s='';const mins=Math.min(4,t/3);
+function walkers(mins,t){
+  let s='';
   for(const [row,speed,color,name] of [[0,1,blue,'青色'],[1,2,red,'红色']]){
     const yy=112+row*137,pos=65+speed*mins/8*435,leg=Math.sin(t*7)*9;
     s+=txt(65,yy-46,`${name} · 每分钟 ${speed} 米`,'track-name','start');
@@ -43,22 +48,49 @@ function walkers(t){
   s+=txt(500,360,'刻度：米','','end')+txt(65,27,`经过 ${n(mins)} 分钟`,'math-label','start');
   return `<svg class="slope-visual" viewBox="0 0 570 380" role="img" aria-label="两人匀速行走，${n(mins)} 分钟后分别走过 ${n(mins)} 米与 ${n(2*mins)} 米。">${s}</svg>`;
 }
-function pause(){playing=false;cancelAnimationFrame(frame);frame=0;syncTransport();save();}
-function syncTransport(){const b=document.getElementById('movie-play');if(b){b.textContent=playing?'Ⅱ 暂停':time>=DURATION?'↺ 重新播放':'▷ 播放动画';b.setAttribute('aria-pressed',String(playing));}}
+function audioStatus(message=''){const el=document.getElementById('audio-status');if(el)el.textContent=message;}
+function pause(){playRequest++;starting=false;playing=false;narration.pause();cancelAnimationFrame(frame);frame=0;syncTransport();save();}
+function syncTransport(){const b=document.getElementById('movie-play');if(b){b.disabled=starting;b.textContent=starting?'正在加载讲解…':playing?'Ⅱ 暂停讲解':time>=DURATION?'↺ 重新播放':'▷ 播放讲解动画';b.setAttribute('aria-pressed',String(playing));}const mute=document.getElementById('movie-mute');if(mute){mute.textContent=narration.muted?'开启声音':'静音讲解';mute.setAttribute('aria-pressed',String(narration.muted));}}
+function seek(target){pause();time=Math.max(0,Math.min(DURATION,target));if(narration.error)narration.load();narration.currentTime=time;movieFrame();}
 function movieFrame(){
-  const b=beatAt(time),idx=beats.indexOf(b),stage=document.getElementById('visual');if(!stage)return;
-  stage.innerHTML=b.view==='walk'?walkers(time):plot(2,b.view==='wide'||b.view==='formula'?2:1,{motion:true,comparison:idx<3,triangle:idx>=3,reveal:idx===1?Math.min(1,(time-12)/10):1,triangleProgress:Math.min(1,(time-b.start)/4)});
-  document.getElementById('movie-title').textContent=b.title;document.getElementById('movie-caption').textContent=b.text;
-  document.getElementById('movie-clock').textContent=`${clock(time)} / 1:12`;
+  const cue=animationAt(time),b=cue.beat,idx=beats.indexOf(b),stage=document.getElementById('visual');if(!stage)return;
+  stage.innerHTML=b.view==='walk'?walkers(cue.walkMinutes,time):plot(2,cue.interval,{motion:true,comparison:idx<3,triangle:idx>=3,reveal:cue.reveal,horizontal:cue.horizontal,vertical:cue.vertical});
+  document.getElementById('movie-title').textContent=b.title;
+  const caption=document.getElementById('movie-caption');if(caption.textContent!==cue.sentence.text)caption.textContent=cue.sentence.text;
+  document.getElementById('movie-clock').textContent=`${clock(time)} / ${clock(DURATION)}`;
   document.getElementById('movie-timeline').value=time;
-  document.getElementById('formula-readout').innerHTML=idx>=3?`<span>斜率 = <b>Δy / Δx</b></span><span>${idx>=4?'4 / 2':'2 / 1'} = <b>2</b></span>`:'<span>同一起点 · 匀速运动 · 固定刻度</span>';
+  document.getElementById('formula-readout').innerHTML=idx>=3?`<span>斜率 = <b>Δy / Δx</b></span><span>${n(2*cue.interval)} / ${n(cue.interval)} = <b>2</b></span>`:'<span>同一起点 · 匀速运动 · 固定刻度</span>';
   for(const el of root.querySelectorAll('[data-beat]')){const active=Number(el.dataset.beat)===idx;el.classList.toggle('active',active);if(active)el.setAttribute('aria-current','true');else el.removeAttribute('aria-current');}
   document.getElementById('movie-end').hidden=time<DURATION;
 }
-function tick(now){if(!playing||mode!=='watch')return;const elapsed=Math.min((now-previous)/1000,.15);previous=now;time=Math.min(DURATION,time+elapsed);watchSeconds=Math.min(DURATION,watchSeconds+elapsed);movieFrame();if(time>=DURATION){pause();return;}frame=requestAnimationFrame(tick);}
-function togglePlay(){if(playing){pause();return;}if(time>=DURATION)time=0;root.querySelector('.pilot-workspace').scrollIntoView({block:'start',behavior:'instant'});playing=true;previous=performance.now();syncTransport();frame=requestAnimationFrame(tick);}
+function tick(){if(!playing||mode!=='watch')return;const next=Math.min(DURATION,narration.currentTime);watchSeconds=Math.min(DURATION,watchSeconds+Math.max(0,next-time));time=next;movieFrame();frame=requestAnimationFrame(tick);}
+async function togglePlay(){
+  if(playing){pause();return;}if(starting)return;
+  if(time>=DURATION)time=0;
+  movieFrame();
+  if(narration.error)narration.load();
+  const request=++playRequest;starting=true;syncTransport();audioStatus('正在加载讲解音频…');
+  root.querySelector('.pilot-workspace').scrollIntoView({block:'start',behavior:'instant'});
+  try{narration.currentTime=time;await narration.play();if(request!==playRequest||mode!=='watch'){narration.pause();return;}starting=false;playing=true;audioStatus();syncTransport();frame=requestAnimationFrame(tick);}
+  catch{if(request!==playRequest)return;starting=false;playing=false;syncTransport();audioStatus('讲解音频暂时无法播放。请检查网络后再次点击播放。');}
+}
 function renderWatch(){
-  root.innerHTML=`<div class="pilot-workspace"><section class="visual-column" aria-label="斜率字幕动画"><div class="visual-label"><span>一段运动，变成一条直线</span><span>72 秒 · 无声字幕</span></div><div id="visual"></div><div id="formula-readout" class="formula-strip"></div><div class="transport"><button class="action" id="movie-play" aria-pressed="false">▷ 播放动画</button><button class="action outline" id="movie-back">后退 10 秒</button><span class="clock" id="movie-clock"></span></div><label class="timeline-label" for="movie-timeline"><span>动画进度 · 可以拖动回看</span><span>1:12</span></label><input class="timeline" id="movie-timeline" type="range" min="0" max="72" step="0.1" value="${time}"><div class="caption" aria-label="当前讲解字幕"><h2 id="movie-title"></h2><p id="movie-caption"></p></div><p id="movie-end" class="feedback" hidden>动画已到结尾。现在先预测，再用同一组图形验证。</p></section><aside class="lesson-sidebar"><div class="eyebrow">01 / 先形成一个印象</div><h2>为什么有的直线<br>更陡一些？</h2><p>先看两个人怎样行走，再看图像怎样把变化留下来。</p><ol aria-label="动画六个片段">${beats.map((b,i)=>`<li class="beat" data-beat="${i}"><span>${clock(b.start)}</span>${b.title}</li>`).join('')}</ol><div class="aside-bottom"><button class="action" data-mode="explore">去预测与探索 →</button><p class="hint-note">可以直接探索；需要时随时回看。动画不会自动播放。</p></div></aside></div>`;movieFrame();syncTransport();
+  root.innerHTML=`<div class="pilot-workspace">
+    <section class="visual-column" aria-label="斜率讲解动画">
+      <div class="visual-label"><span>一段运动，变成一条直线</span><span>约 ${Math.round(DURATION)} 秒 · 中文讲解</span></div>
+      <div id="visual"></div><div id="formula-readout" class="formula-strip"></div>
+      <div class="transport"><button class="action" id="movie-play" aria-pressed="false">▷ 播放讲解动画</button><button class="action outline" id="movie-back">后退 10 秒</button><button class="action outline" id="movie-mute" aria-pressed="${narration.muted}">静音讲解</button><span class="clock" id="movie-clock"></span></div>
+      <p id="audio-status" class="hint-note" role="status"></p>
+      <label class="timeline-label" for="movie-timeline"><span>讲解进度 · 可以拖动回看</span><span>${clock(DURATION)}</span></label>
+      <input class="timeline" id="movie-timeline" type="range" min="0" max="${DURATION}" step="0.1" value="${time}">
+      <div class="caption" aria-label="当前讲解字幕"><h2 id="movie-title"></h2><p id="movie-caption"></p></div>
+      <p id="movie-end" class="feedback" hidden>讲解已到结尾。现在先预测，再用同一组图形验证。</p>
+    </section>
+    <aside class="lesson-sidebar"><div class="eyebrow">01 / 先形成一个印象</div><h2>为什么有的直线<br>更陡一些？</h2><p>听讲解，看两个人怎样行走，再看图像怎样把变化留下来。</p>
+      <ol aria-label="动画六个片段">${beats.map((b,i)=>`<li class="beat" data-beat="${i}"><span>${clock(b.start)}</span>${b.title}</li>`).join('')}</ol>
+      <div class="aside-bottom"><button class="action" data-mode="explore">去预测与探索 →</button><p class="hint-note">点击播放后开启声音与动画；可以静音、回看，或直接探索。</p></div>
+    </aside></div>`;
+  movieFrame();syncTransport();
 }
 function exploreDrawing(){const m=reading(k,dx);document.getElementById('visual').innerHTML=plot(k,dx);document.getElementById('slope-value').textContent=n(k);document.getElementById('interval-value').textContent=dx;document.getElementById('live-formula').textContent=`${n(m.dy)} / ${dx} = ${n(k)}`;document.getElementById('live-explain').textContent=k===0?'x 改变时，y 不变。斜率为 0，这条直线与横轴重合。':`x 每增加 1，y ${k>0?'增加':'减少'} ${n(Math.abs(k))}。${k<0?'负号表示变化的方向。':'正号表示 y 随 x 增加而增加。'}`;document.getElementById('table-values').innerHTML=`<tr><th scope="row">x</th>${m.values.map(v=>`<td>${v.x}</td>`).join('')}</tr><tr><th scope="row">y</th>${m.values.map(v=>`<td>${n(v.y)}</td>`).join('')}</tr>`;}
 function taskHTML(){return `<div class="task-box"><div class="task-dots" aria-label="已完成 ${passed.length} / 3 个操作任务">${tasks.map((_,i)=>`<span class="${passed.includes(i)?'done':''}"></span>`).join('')}</div><div class="eyebrow">操作任务 ${task+1} / 3</div><h3>${tasks[task].title}</h3><p>${tasks[task].hint}</p><button class="action" id="task-check">检查我的图形</button><div id="task-feedback" class="feedback" aria-live="polite"></div><button class="action outline" id="task-next" ${passed.includes(task)?'':'hidden'}>${task<2?'下一个操作任务 →':'去检验理解 →'}</button></div>`;}
@@ -76,7 +108,8 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.mode){changeMode(b.dataset.mode);document.querySelector(`.learning-steps [data-mode="${mode}"]`).focus({preventScroll:true});return;}
   if(b.id==='movie-play')togglePlay();
-  if(b.id==='movie-back'){pause();time=Math.max(0,time-10);movieFrame();syncTransport();}
+  if(b.id==='movie-back')seek(time-10);
+  if(b.id==='movie-mute'){narration.muted=!narration.muted;syncTransport();}
   if(b.dataset.predict!==undefined){prediction=Number(b.dataset.predict);for(const v of root.querySelectorAll('[data-predict]'))v.setAttribute('aria-pressed',String(Number(v.dataset.predict)===prediction));predictionFeedback();document.getElementById('prediction-try').hidden=false;}
   if(b.id==='prediction-try'){k=1;document.getElementById('slope-k').value=k;exploreDrawing();document.getElementById('slope-k').focus();}
   if(b.dataset.k!==undefined){k=Number(b.dataset.k);document.getElementById('slope-k').value=k;exploreDrawing();clearTaskFeedback();}
@@ -88,10 +121,16 @@ document.addEventListener('click',e=>{
 });
 function clearTaskFeedback(){document.getElementById('task-feedback').textContent='';document.getElementById('task-next').hidden=!passed.includes(task);}
 root.addEventListener('input',e=>{
-  if(e.target.id==='movie-timeline'){pause();time=Number(e.target.value);movieFrame();syncTransport();}
+  if(e.target.id==='movie-timeline')seek(Number(e.target.value));
   if(e.target.id==='slope-k'){k=Number(e.target.value);exploreDrawing();clearTaskFeedback();}
   if(e.target.id==='slope-dx'){dx=Number(e.target.value);exploreDrawing();clearTaskFeedback();}
 });
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
-window.addEventListener('pagehide',pause);window.addEventListener('blur',()=>{if(playing)pause();});
+window.addEventListener('pagehide',pause);window.addEventListener('blur',()=>{if(playing||starting)pause();});
+narration.addEventListener('ended',()=>{time=DURATION;pause();if(mode==='watch')movieFrame();});
+narration.addEventListener('pause',()=>{if(playing)pause();});
+narration.addEventListener('waiting',()=>{if(playing)audioStatus('正在缓冲讲解音频…');});
+narration.addEventListener('playing',()=>audioStatus());
+narration.addEventListener('seeked',()=>{if(mode==='watch'&&!playing){time=Math.min(DURATION,narration.currentTime);movieFrame();syncTransport();}});
+narration.addEventListener('error',()=>{pause();audioStatus('讲解音频暂时无法加载。请检查网络后重新播放。');});
 renderWatch();

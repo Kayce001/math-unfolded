@@ -33,7 +33,7 @@ excluded=['.git/config','.env','package.json','tools/build-release.py','qa-artif
 with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
     private=list(pool.map(fetch,excluded))
 version=json.loads(Path('qa-artifacts/release-info.json').read_text())['assetVersion']
-versioned=[name+'?v='+version for name in manifest if name.endswith(('.js','.css','.svg'))]
+versioned=[name+'?v='+version for name in manifest if name.endswith(('.js','.css','.svg','.mp3'))]
 with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
     version_results=list(pool.map(fetch,versioned))
 fail=[r for r in version_results if r.get('status')!=200 or r.get('sha256')!=manifest[r['path'].split('?')[0]]]

@@ -1,16 +1,23 @@
 // Original lesson model: y = kx, with the intercept fixed at zero.
-export const DURATION = 72;
-export const beats = [
-  {start:0,end:12,title:'同样一分钟，谁走得更远？',text:'两个人从同一起点出发，匀速向前走。青色每分钟走 1 米，红色每分钟走 2 米。',view:'walk',k:2},
-  {start:12,end:24,title:'把运动，留在一张图上',text:'横轴记录时间，纵轴记录走过的路程。同样一分钟，红色增加的路程更多。',view:'motion',k:2},
-  {start:24,end:36,title:'直线的陡缓，记录变化的快慢',text:'青线每向右走 1 格，就向上走 1 格；红线每向右走 1 格，就向上走 2 格。两条轴的刻度固定。',view:'motion',k:2},
-  {start:36,end:48,title:'横着走多少，竖着变多少',text:'看红线上的两个点：横向增加 1，纵向增加 2。纵向变化除以横向变化，得到 2。这就是这条直线的斜率。',view:'triangle',k:2},
-  {start:48,end:60,title:'换两个点，比例还是一样',text:'横向增加 2，纵向就增加 4。4 除以 2 仍然是 2。直线上两点的位置可以改变，斜率不变。',view:'wide',k:2},
-  {start:60,end:72,title:'斜率，是每单位横向变化对应的纵向变化',text:'对于 y = kx，斜率就是 k。刚才的路程图中，它的单位是米每分钟。接下来，先预测，再亲手验证。',view:'formula',k:2},
-];
+import {narrationTiming} from './slope-timing.js';
+export const DURATION = narrationTiming.duration;
+export const beats = narrationTiming.beats;
+export const sentences = narrationTiming.sentences;
+export function sentenceAt(time){return sentences.find(s=>time<s.end)||sentences.at(-1);}
+const progress=(time,start,end)=>Math.max(0,Math.min(1,(time-start)/Math.max(.01,end-start)));
+export function animationAt(time){
+  const b=beatAt(time),rows=sentences.filter(s=>s.beat===b.id);
+  const interval=b.view==='wide'?1+progress(time,rows[0].start,rows[0].audioEnd):b.view==='formula'?2:1;
+  const change=rows[1]||rows[0],mid=(change.start+change.audioEnd)/2;
+  return {beat:b,sentence:sentenceAt(time),interval,
+    walkMinutes:4*progress(time,rows[0].start,b.end),
+    reveal:b.id==='B002'?progress(time,rows[0].start,b.end):1,
+    horizontal:b.id==='B004'?progress(time,change.start,mid):1,
+    vertical:b.id==='B004'?progress(time,mid,change.audioEnd):1};
+}
 export function beatAt(time){const t=Math.min(DURATION,Math.max(0,Number(time)||0));return beats.find(b=>t<b.end)||beats.at(-1);}
 export function reading(k,dx=1){
-  if(!Number.isFinite(k)||![1,2].includes(dx))throw new RangeError('Invalid slope or interval');
+  if(!Number.isFinite(k)||!Number.isFinite(dx)||dx<=0||dx>3)throw new RangeError('Invalid slope or interval');
   return {k,dx,dy:k*dx,p:{x:1,y:k},q:{x:1+dx,y:k*(1+dx)},values:[0,1,2,3,4].map(x=>({x,y:k*x}))};
 }
 export const tasks=[

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {DURATION,beats,beatAt,reading,tasks,taskMatches,questions,mastery} from '../public/slope-model.js';
+import {DURATION,beats,beatAt,sentences,sentenceAt,animationAt,reading,tasks,taskMatches,questions,mastery} from '../public/slope-model.js';
 
 test('slope is invariant under two nonzero horizontal intervals, including negative and zero slopes',()=>{
   for(let k=-3;k<=3;k+=.5)for(const dx of [1,2]){
@@ -12,11 +12,29 @@ test('slope is invariant under two nonzero horizontal intervals, including negat
   assert.throws(()=>reading(1,0),RangeError);
   assert.throws(()=>reading(NaN),RangeError);
 });
-test('the full 72-second animation has no missing intervals and clamps seeking at both ends',()=>{
+test('the measured narration timeline has no missing intervals and clamps seeking at both ends',()=>{
   assert.equal(beats[0].start,0);assert.equal(beats.at(-1).end,DURATION);
   for(let i=1;i<beats.length;i++)assert.equal(beats[i-1].end,beats[i].start);
-  assert.equal(beatAt(-10),beats[0]);assert.equal(beatAt(12),beats[1]);assert.equal(beatAt(500),beats.at(-1));
+  assert.equal(beatAt(-10),beats[0]);assert.equal(beatAt(beats[1].start),beats[1]);assert.equal(beatAt(DURATION+10),beats.at(-1));
   for(let time=0;time<=DURATION;time+=.25)assert.ok(beatAt(time).text);
+});
+test('narration captions and geometric cues follow measured sentence boundaries',()=>{
+  assert.equal(sentences.length,21);
+  for(let i=0;i<sentences.length;i++){
+    const s=sentences[i];assert.ok(s.audioEnd>s.start);assert.ok(s.end>=s.audioEnd);
+    if(i)assert.equal(sentences[i-1].end,s.start);
+    assert.equal(sentenceAt(s.start),s);
+    assert.equal(animationAt(s.start).beat.id,s.beat);
+  }
+  const change=sentences.find(s=>s.id==='B004-S002');
+  assert.equal(animationAt(change.start).horizontal,0);
+  assert.equal(animationAt(change.start).vertical,0);
+  assert.equal(animationAt(change.audioEnd).horizontal,1);
+  assert.equal(animationAt(change.audioEnd).vertical,1);
+  const wide=sentences.find(s=>s.id==='B005-S001');
+  assert.equal(animationAt(wide.start).interval,1);
+  assert.equal(animationAt(wide.audioEnd).interval,2);
+  assert.equal(sentences.at(-1).end,DURATION);
 });
 test('tasks demand correct positive, zero and negative slopes; mastery requires all tasks and all correct answers',()=>{
   tasks.forEach((t,i)=>{assert.equal(taskMatches(i,t.target),true);assert.equal(taskMatches(i,t.target+.5),false);});
