@@ -31,3 +31,5 @@ body.movie-expanded{overflow:hidden}
  #movie-player:is(:fullscreen,.is-expanded) .timeline{grid-column:2;grid-row:7}
  #movie-player:is(:fullscreen,.is-expanded) #movie-end{grid-column:2;grid-row:8;font-size:11px}
 }
+
+.range-limits{display:flex;justify-content:space-between;font:11px var(--mono);color:var(--muted);margin-top:2px}

@@ -2,10 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DURATION,beats,beatAt,sentences,sentenceAt,animationAt,reading,plotGeometry,tasks,taskMatches,questions,mastery} from '../public/slope-model.js';
 
-test('slope is invariant under two nonzero horizontal intervals, including negative and zero slopes',()=>{
-  for(let k=-3;k<=3;k+=.5)for(const dx of [1,2]){
+test('slope is invariant across fractional horizontal intervals, including negative and zero slopes',()=>{
+  for(let k=-3;k<=3;k+=.5)for(let step=5;step<=20;step++){
+    const dx=step/10;
     const r=reading(k,dx);
-    assert.equal((r.q.y-r.p.y)/(r.q.x-r.p.x),k);
+    assert.ok(Math.abs((r.q.y-r.p.y)/(r.q.x-r.p.x)-k)<1e-12);
     assert.equal(r.dy,k*dx);
     for(const {x,y} of r.values)assert.equal(y,k*x);
   }
@@ -23,7 +24,7 @@ test('the displayed grid uses equal unit lengths and keeps both comparison point
     const g=plotGeometry(k),horizontal=Math.abs(g.x(1)-g.x(0));
     assert.equal(Math.abs(g.y(1)-g.y(0)),horizontal);
     assert.equal(Math.abs(g.y(2)-g.y(0)),2*horizontal);
-    for(const dx of [1,2])for(const p of [reading(k,dx).p,reading(k,dx).q]){
+    for(let step=5;step<=20;step++)for(const p of [reading(k,step/10).p,reading(k,step/10).q]){
       assert.ok(g.x(p.x)>=g.left&&g.x(p.x)<=g.right);
       assert.ok(g.y(p.y)>=g.top&&g.y(p.y)<=g.bottom);
     }
