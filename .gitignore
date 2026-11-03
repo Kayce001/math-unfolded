@@ -3,3 +3,25 @@ qa-artifacts/
 .env*
 .DS_Store
 Thumbs.db
+
+# Local operations, private material and generated state
+/deploy/
+/private-ops/
+/backups/
+/logs/
+/WORK_PLAN.md
+*.pem
+*.key
+*.p12
+*.pfx
+*.tfstate
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+.ssh/
+.aws/
+.kube/
+.wrangler/
+__pycache__/
+.venv/
