@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {DURATION,beats,beatAt,sentences,sentenceAt,animationAt,reading,tasks,taskMatches,questions,mastery} from '../public/slope-model.js';
+import {DURATION,beats,beatAt,sentences,sentenceAt,animationAt,reading,plotGeometry,tasks,taskMatches,questions,mastery} from '../public/slope-model.js';
 
 test('slope is invariant under two nonzero horizontal intervals, including negative and zero slopes',()=>{
   for(let k=-3;k<=3;k+=.5)for(const dx of [1,2]){
@@ -17,6 +17,19 @@ test('the measured narration timeline has no missing intervals and clamps seekin
   for(let i=1;i<beats.length;i++)assert.equal(beats[i-1].end,beats[i].start);
   assert.equal(beatAt(-10),beats[0]);assert.equal(beatAt(beats[1].start),beats[1]);assert.equal(beatAt(DURATION+10),beats.at(-1));
   for(let time=0;time<=DURATION;time+=.25)assert.ok(beatAt(time).text);
+});
+test('the displayed grid uses equal unit lengths and keeps both comparison points visible',()=>{
+  for(let k=-3;k<=3;k+=.5){
+    const g=plotGeometry(k),horizontal=Math.abs(g.x(1)-g.x(0));
+    assert.equal(Math.abs(g.y(1)-g.y(0)),horizontal);
+    assert.equal(Math.abs(g.y(2)-g.y(0)),2*horizontal);
+    for(const dx of [1,2])for(const p of [reading(k,dx).p,reading(k,dx).q]){
+      assert.ok(g.x(p.x)>=g.left&&g.x(p.x)<=g.right);
+      assert.ok(g.y(p.y)>=g.top&&g.y(p.y)<=g.bottom);
+    }
+    assert.equal(g.unit,plotGeometry(2).unit);
+    assert.equal(k<0?g.yMax:g.yMin,0);
+  }
 });
 test('narration captions and geometric cues follow measured sentence boundaries',()=>{
   assert.equal(sentences.length,21);

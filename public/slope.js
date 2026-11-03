@@ -1,4 +1,4 @@
-import {DURATION,beats,animationAt,reading,tasks,taskMatches,questions,mastery} from './slope-model.js';
+import {DURATION,beats,animationAt,reading,plotGeometry,tasks,taskMatches,questions,mastery} from './slope-model.js';
 
 const root=document.getElementById('lesson'),KEY='math-unfolded-slope-v1';
 let mode='watch',time=0,playing=false,frame=0,k=2,dx=1,task=0,prediction=null,playRequest=0,starting=false;
@@ -16,25 +16,28 @@ const line=(x1,y1,x2,y2,color,width=1,dash='')=>`<line x1="${x1}" y1="${y1}" x2=
 const txt=(x,y,t,cls='',anchor='middle')=>`<text x="${x}" y="${y}" text-anchor="${anchor}" class="${cls}">${t}</text>`;
 const red='#ad4e35',blue='#467c8d',grid='#e4e3dc';
 function plot(slope,interval=1,{motion=false,comparison=false,triangle=true,reveal=1,horizontal=1,vertical=1}={}){
-  const X=x=>56+x*115,Y=y=>178-y*10.5;
+  const g=plotGeometry(slope),X=g.x,Y=g.y,below=slope<0;
   const m=reading(slope,interval);let s='';
-  for(let x=0;x<=4;x++){s+=line(X(x),38,X(x),310,grid);s+=txt(X(x),335,x);}
-  const yticks=[-12,-6,0,6,12];
-  for(const y of yticks){s+=line(56,Y(y),516,Y(y),grid);s+=txt(44,Y(y)+5,y,'','end');}
-  s+=line(56,Y(0),526,Y(0),'#a1a197',1.2)+line(56,28,56,313,'#a1a197',1.2);
-  s+=txt(516,360,motion?'时间（分钟）':'x','','end')+txt(56,19,motion?'路程（米）':'y','axis-title','start');
-  if(comparison)s+=line(X(0),Y(0),X(4*reveal),Y(4*reveal),blue,2.5)+txt(X(3.65),Y(3.65)-13,'每分钟 1 米','','end')+`<circle cx="${X(4*reveal)}" cy="${Y(4*reveal)}" r="4" fill="${blue}"/>`;
-  s+=line(X(0),Y(0),X(4*reveal),Y(slope*4*reveal),red,3);
-  if(comparison)s+=`<circle cx="${X(4*reveal)}" cy="${Y(slope*4*reveal)}" r="4" fill="${red}"/>`;
+  for(let x=0;x<=4;x++){s+=line(X(x),g.top,X(x),g.bottom,grid);s+=txt(X(x),below?Y(0)-14:g.bottom+48,x);}
+  for(let y=g.yMin;y<=g.yMax;y++){s+=line(g.left,Y(y),g.right,Y(y),grid);s+=txt(g.left-12,Y(y)+5,n(y),'','end');}
+  s+=line(g.left,Y(0),g.right+8,Y(0),'#a1a197',1.2)+line(g.left,g.top-8,g.left,g.bottom+6,'#a1a197',1.2);
+  s+=txt(g.right+16,below?Y(0)-14:g.bottom+72,motion?'时间（分钟）':'x','axis-title',below?'start':'end')+txt(below?g.left-42:g.left,19,motion?'路程（米）':'y','axis-title','start');
+  if(comparison){s+=line(X(0),Y(0),X(4*reveal),Y(4*reveal),blue,2.5)+`<circle cx="${X(4*reveal)}" cy="${Y(4*reveal)}" r="4" fill="${blue}"/>`;}
+  const endX=Math.min(4,Math.abs(slope)>0?8/Math.abs(slope):4)*reveal;
+  s+=line(X(0),Y(0),X(endX),Y(slope*endX),red,3);
+  if(comparison)s+=`<circle cx="${X(endX)}" cy="${Y(slope*endX)}" r="4" fill="${red}"/>`;
   if(triangle){
-    s+=`<path d="M${X(1)},${Y(m.p.y)}H${X(1+interval)}V${Y(m.q.y)}Z" fill="${red}" opacity="${.07*Math.min(horizontal,vertical)}"/>`;
-    s+=line(X(1),Y(m.p.y),X(1+interval*horizontal),Y(m.p.y),blue,2,'5 4')+line(X(1+interval),Y(m.p.y),X(1+interval),Y(m.p.y+(m.q.y-m.p.y)*vertical),red,2,'5 4');
-    if(horizontal===1)s+=txt(X(1+interval/2),Y(m.p.y)+23,`Δx = ${n(interval)}`,'point-text');
-    if(vertical===1)s+=txt(X(1+interval)+10,(Y(m.p.y)+Y(m.q.y))/2-6,`Δy = ${n(m.dy)}`,'point-text','start');
-    for(const [label,p] of [['P',m.p],['Q',m.q]])s+=`<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="5" fill="${red}" stroke="#fcfbf8" stroke-width="2"/>`+txt(X(p.x)-12,Y(p.y)-12,label,'point-text');
+    s+=`<path d="M${X(m.p.x)},${Y(m.p.y)}H${X(m.q.x)}V${Y(m.q.y)}Z" fill="${red}" opacity="${.07*Math.min(horizontal,vertical)}"/>`;
+    s+=line(X(m.p.x),Y(m.p.y),X(interval*horizontal),Y(m.p.y),blue,2,'5 4')+line(X(m.q.x),Y(m.p.y),X(m.q.x),Y(m.p.y+m.dy*vertical),red,2,'5 4');
+    if(horizontal===1)s+=txt(X(interval/2),Y(m.p.y)+23,`Δx = ${n(interval)}`,'point-text');
+    if(vertical===1)s+=txt(X(m.q.x)+10,(Y(m.p.y)+Y(m.q.y))/2-6,`Δy = ${n(m.dy)}`,'point-text','start');
+    for(const [label,p] of [['P',m.p],['Q',m.q]])s+=`<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="5" fill="${red}" stroke="#fcfbf8" stroke-width="2"/>`+txt(X(p.x)-(below&&label==='P'?30:12),Y(p.y)+(below&&label==='P'?5:-12),label,'point-text');
   }
-  s+=txt(510,44,motion?'固定刻度':'一般坐标图 · 固定刻度','','end');
-  return `<svg class="slope-visual" viewBox="0 0 570 380" role="img" aria-label="${motion?'路程时间图':'坐标图'}：斜率 ${slope}，横向变化 ${interval}，纵向变化 ${n(m.dy)}。${comparison?'青线斜率为 1。':''}">${s}</svg>`;
+  s+=txt(270,97,'正方形网格','scale-note','start')+txt(270,124,'横向每格 1','scale-note','start')+txt(270,151,'纵向每格 1','scale-note','start');
+  s+=txt(270,205,'每向右 1 格','scale-note','start')+txt(270,234,slope===0?'高度不变':`向${below?'下':'上'} ${n(Math.abs(slope))} 格`,'scale-value','start');
+  if(comparison)s+=txt(270,280,'青线：斜率 1','scale-note','start')+txt(270,307,'红线：斜率 2','scale-note','start');
+  else s+=txt(270,280,below?'展示横轴下方':'展示第一象限','scale-note','start');
+  return `<svg class="slope-visual equal-unit" viewBox="0 0 430 420" role="img" aria-label="${motion?'路程时间图':'坐标图'}：横纵每格均为 1，单位长度相同。斜率 ${slope}，横向变化 ${n(interval)}，纵向变化 ${n(m.dy)}。${below?'展示横轴下方。':''}${comparison?'青线斜率为 1。':''}">${s}</svg>`;
 }
 function walkers(mins,t){
   let s='';

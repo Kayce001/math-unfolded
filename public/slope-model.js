@@ -18,7 +18,15 @@ export function animationAt(time){
 export function beatAt(time){const t=Math.min(DURATION,Math.max(0,Number(time)||0));return beats.find(b=>t<b.end)||beats.at(-1);}
 export function reading(k,dx=1){
   if(!Number.isFinite(k)||!Number.isFinite(dx)||dx<=0||dx>3)throw new RangeError('Invalid slope or interval');
-  return {k,dx,dy:k*dx,p:{x:1,y:k},q:{x:1+dx,y:k*(1+dx)},values:[0,1,2,3,4].map(x=>({x,y:k*x}))};
+  return {k,dx,dy:k*dx,p:{x:0,y:0},q:{x:dx,y:k*dx},values:[0,1,2,3,4].map(x=>({x,y:k*x}))};
+}
+// Both axes use the same SVG distance per numerical unit. Negative slopes
+// show the region below the x-axis without changing that unit distance.
+export function plotGeometry(k){
+  const unit=36,left=88,top=40,yMin=k<0?-8:0,yMax=k<0?0:8;
+  const originY=top+yMax*unit;
+  return {unit,left,top,right:left+4*unit,bottom:top+8*unit,yMin,yMax,
+    x:x=>left+x*unit,y:y=>originY-y*unit};
 }
 export const tasks=[
   {target:2,title:'让 y 每次增加 2',hint:'x 每增加 1，y 就增加 2。请调整斜率。',explain:'k = 2：横向增加 1，纵向增加 2。'},
