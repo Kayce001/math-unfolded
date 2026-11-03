@@ -25,3 +25,7 @@ Thumbs.db
 .wrangler/
 __pycache__/
 .venv/
+/docs/PUBLICATION.md
+/VALIDATION.md
+/docs/PILOT_SLOPE.md
+/docs/narration-quality.json

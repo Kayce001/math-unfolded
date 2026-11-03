@@ -12,7 +12,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 DENIED = re.compile(
     r'(?i)(?:^|/)(?:deploy|private|private-ops|backups?|logs?|qa-artifacts|\.ssh|\.aws|\.kube|\.terraform|\.vercel|\.translation|node_modules|__pycache__|\.venv)(?:/|$)'
-    r'|(?:^|/)(?:WORK_PLAN\.md|\.env(?:\..*)?|\.npmrc|\.pypirc|id_rsa|id_ed25519|cookies?(?:\..*)?|storage[-_]?state(?:\..*)?)$'
+    r'|(?:^|/)(?:WORK_PLAN\.md|PUBLICATION\.md|VALIDATION\.md|PILOT_SLOPE\.md|narration-quality\.json|TRANSLATION_REPORT\.json|\.env(?:\..*)?|\.npmrc|\.pypirc|id_rsa|id_ed25519|cookies?(?:\..*)?|storage[-_]?state(?:\..*)?)$'
     r'|\.(?:pem|key|p12|pfx|tfstate|sqlite3?|db|dump|bak|log)$')
 CONTENT = {
     'private key': rb'-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY',
